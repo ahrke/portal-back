@@ -1,3 +1,5 @@
+const handleInsert = require('../api/handleInsertToSql');
+
 const handleRegister = (db) => (req,res) => {
   const { account_name, password, name_first, name_last, role } = req.body;
   if(!(account_name && password)){
@@ -28,23 +30,16 @@ const handleRegister = (db) => (req,res) => {
 // insert items into database
   db.transaction(trx => {
     // insert student/teacher first
-    handleInsert(trx,insertData,linkedTable)
+    handleInsert.handleInsert(trx,insertData,linkedTable)
     // then into main account, returning account
     .then(data => {
-      return handleInsert( trx, mainAccount, 'accounts')
+      return handleInsert.handleInsert( trx, mainAccount, 'accounts')
         .then(account => res.json(account[0]))
     })
     .then(trx.commit)
     .catch(trx.rollback)
   })
 }
-
-// function to handle inserting
-const handleInsert = ( trx, toInsert, table ) => {
-  return trx.insert(toInsert)
-  .into(table)
-}
-
 
 module.exports = {
   handleRegister

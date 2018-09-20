@@ -6,6 +6,8 @@ const handleAddCourse = (db) => (req,res) => {
   let teacher_id;
   let course_id;
 
+  console.log("!!--!!--we in the addNewCourse, account_name is...",account_name)
+
   if(!(course_name && course_code)){
     return res.status(400).send('invalid input');
   }
@@ -67,11 +69,11 @@ const handleAddCourse = (db) => (req,res) => {
             return hi.handleInsert(trx, mathayomCourse(data[0].course_id), mathayom_course)
               .then(data => {
                 console.log(data)
-                return hi.handleInsert(trx, teacherCourse(data[0].course_id), teacher_course)
+                return hi.handleInsert(trx, teacherCourse(data[0].course_id, teacher_id), teacher_course)
               })
+              .then(trx.commit)
           })
       })
-      .then(trx.commit)
       .catch(trx.rollback)
     })
   }

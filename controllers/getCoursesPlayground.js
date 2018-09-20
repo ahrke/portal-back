@@ -41,6 +41,31 @@ const createLesson = (lesson) => {
   })
 }
 
+const getStudentCourseIds = (acc, resolve) => {
+  let mLvl = acc.mathayom_level;
+  return db('mathayom_course').select('*').where({
+    mathayom_level : mLvl
+  }).then(courses => {
+    console.log("we in courses...it is..",courses[0])
+    let ids = courses.map(course => {
+      return course.course_id
+    })
+    resolve(ids)
+  })
+}
+
+const getTeacherCourseIds = (acc, resolve) => {
+  return db('teachers').select('*').where({
+    account_id : acc.account_id
+  }).then(accIn => {
+    return db('teacher_course').select('course_id').where({
+      teacher_id: accIn[0].teacher_id
+    }).then(cIds => {
+      let ids = cIds.map(id => id.course_id);
+      resolve(ids)
+    })
+  })
+}
 
 const returnCourseIds = (account_name) => {
   return new Promise((resolve, reject) => {
@@ -49,22 +74,8 @@ const returnCourseIds = (account_name) => {
       account_name : account_name
     }).then(acc => {
       account = acc[0];
-      table = acc[0].role == 1 ? 'teachers' : 'students';
-      return db(table).select('*').where({
-        account_id : acc[0].account_id
-      }).then(accIn => {
-        let mLvl = accIn[0].homeroom_of ? accIn[0].homeroom_of : accIn[0].mathayom_level;
-        return db('mathayom_course').select('*').where({
-          mathayom_level : mLvl
-        }).then(courses => {
-          console.log("we in courses...it is..",courses[0])
-          ids = courses.map(course => {
-            return course.course_id
-          })
-        }).then(() => {
-          resolve(ids)
-        })
-      })
+      table = acc[0].role == 1 ? getTeacherCourseIds(acc[0],resolve) : getStudentCourseIds(acc[0],resolve);
+      return table;
     })
   })
 }
@@ -122,6 +133,8 @@ const returnCourses = (courses) => {
                   return new Promise((rL,rjL) => {
                     simpleQuery.searchDb(db,'topic_lesson',{topic_id : t[0].topic_id})
                     .then(ts => {
+                      console.log("this is another run at ts",ts)
+                      if(ts[0] == undefined){ rL(topicHere)}
                       let lessonsPromise = ts.map(topic => {
                         return new Promise((rtL,rjtL) => {
                           searchDb('lessons',{lesson_id : topic.lesson_id})
@@ -158,7 +171,7 @@ const returnCourses = (courses) => {
                         topicHere.lessons = lessons.map(l => l)
                         rL("add lessons complete")
                       })
-                      .then(() => {
+                      .then((r) => {
                         res(topicHere)
                       })
                     })
@@ -181,6 +194,7 @@ const returnCourses = (courses) => {
 
     Promise.all(topicsPromise).then(courses => {
       coursesWithTopics = courses.map(course => course)
+      console.log("!!--!!_cWithTopics", coursesWithTopics)
       r(coursesWithTopics);
     })
   })
@@ -218,7 +232,7 @@ const getCourses = (database, account_name) => {
   return new Promise((res,rej) => {
     courseIds.then(ids => {
       returnCourseInfo(ids).then(coursesHere => {
-        console.log(coursesHere.map(course => course))
+        //console.log(coursesHere.map(course => course))
         returnCourses(coursesHere).then(list => {
           let listHere = list
           console.log("\n\naccount role is...",account.role)
